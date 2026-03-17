@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:Users22417DesktophyYouJiAssistant -not -path */target/* -not -path */.git/* -not -path */volumes/* -type d)"
+    ]
+  }
+}

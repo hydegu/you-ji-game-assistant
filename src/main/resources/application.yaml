@@ -9,8 +9,25 @@ spring:
   ai:
     dashscope:
       api-key: ${AI_DASHSCOPE_API_KEY}
-  vectorstore:
-    milvus:
-      client:
-        host: localhost
-        port: 19530   # 对应 docker-compose 暴露的端口
+    vectorstore:
+      milvus:
+        client:
+          host: localhost
+          port: 19530   # 对应 docker-compose 暴露的端口
+          username: "root"
+          password: "milvus"
+  datasource:
+    url: jdbc:mysql://localhost:3306/you_ji_assistant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  mapper-locations: classpath*:com/example/assistant/mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+app:
+  jwt:
+    secret: dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci15b3VqaS1hc3Npc3RhbnQ=
+    expiration: 86400000

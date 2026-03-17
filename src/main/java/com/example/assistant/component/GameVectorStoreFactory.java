@@ -4,6 +4,7 @@ import com.example.assistant.constant.DataBase;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.param.IndexType;
 import io.milvus.param.MetricType;
+import lombok.AllArgsConstructor;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.embedding.TokenCountBatchingStrategy;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
+@AllArgsConstructor
 public class GameVectorStoreFactory {
 
     private final MilvusServiceClient milvusClient;
@@ -21,12 +23,6 @@ public class GameVectorStoreFactory {
     
     // 缓存：避免同一个游戏重复创建
     private final Map<Long, VectorStore> cache = new ConcurrentHashMap<>();
-
-    public GameVectorStoreFactory(MilvusServiceClient milvusClient, 
-                                   EmbeddingModel embeddingModel) {
-        this.milvusClient = milvusClient;
-        this.embeddingModel = embeddingModel;
-    }
 
     /**
      * 根据游戏数据库主键获取对应的 VectorStore
@@ -37,10 +33,9 @@ public class GameVectorStoreFactory {
                 MilvusVectorStore.builder(milvusClient, embeddingModel)
                         .collectionName("game_" + id)  // "game_1001"
                         .databaseName(DataBase.NAME)
-                        .embeddingDimension(1024)
                         .indexType(IndexType.IVF_FLAT)
                         .metricType(MetricType.COSINE)
-                        .batchingStrategy(new TokenCountBatchingStrategy())
+                        .embeddingDimension(1024)
                         .initializeSchema(true)
                         .build()
         );
