@@ -1,0 +1,16 @@
+server:
+  port: 8080
+milvus:
+  host: localhost
+  port: 19530
+spring:
+  application:
+    name: spring-ai-helloworld
+  ai:
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY}
+  vectorstore:
+    milvus:
+      client:
+        host: localhost
+        port: 19530   # 对应 docker-compose 暴露的端口
