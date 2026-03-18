@@ -1,6 +1,9 @@
 package com.example.assistant.config;
 
+import com.alibaba.cloud.ai.document.DocumentParser;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.parser.tika.TikaDocumentParser;
+import com.alibaba.cloud.ai.transformer.splitter.SentenceSplitter;
 import com.example.assistant.component.GameVectorStoreFactory;
 import com.example.assistant.constant.Prompts;
 import com.example.assistant.hooks.QueryEnhancementHook;
@@ -14,9 +17,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.embedding.TokenCountBatchingStrategy;
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
+import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
+import org.springframework.ai.tokenizer.TokenCountEstimator;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
+import org.springframework.ai.transformer.splitter.TextSplitter;
+import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -66,5 +74,35 @@ public class AgentConfig {
                 .instruction(Prompts.PROMPT_VALID)
                 .description(Prompts.AGENT_VALID)
                 .build();
+    }
+
+    /**
+     * 切句子的Bean
+     * @return
+     */
+    @Bean
+    public SentenceSplitter sentenceSplitter(){
+        return new SentenceSplitter(400);
+    }
+
+    /**
+     * token计算
+     */
+    @Bean
+    public TokenCountEstimator tokenCountEstimator(){
+        return new JTokkitTokenCountEstimator();
+    }
+
+    /**
+     * 文档解析
+     */
+    @Bean
+    public DocumentParser parser(){
+        return new TikaDocumentParser();
+    }
+
+    @Bean
+    public TokenTextSplitter textSplitter(){
+        return new TokenTextSplitter();
     }
 }

@@ -43,6 +43,14 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-milvus-store</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter-document-reader-poi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter-document-parser-tika</artifactId>
+        </dependency>
         <!-- ==================== Spring Boot 核心依赖 ==================== -->
         <!-- Spring Boot Actuator：提供应用监控和管理功能，如健康检查、指标收集等 -->
         <dependency>

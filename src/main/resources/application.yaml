@@ -9,6 +9,9 @@ spring:
   ai:
     dashscope:
       api-key: sk-e6caf87577e0464a93db065c4194a4b5
+      embedding:
+        options:
+          model: text-embedding-v4
       chat:
         options:
           model: qwen-plus
@@ -34,3 +37,8 @@ app:
   jwt:
     secret: dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci15b3VqaS1hc3Npc3RhbnQ=
     expiration: 86400000
+
+game:
+  assistant:
+    chunk-size: 400
+    overlap-ratio: 0.15
