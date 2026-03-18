@@ -33,11 +33,6 @@ public class AnswerValidationInterceptor extends ModelInterceptor {
     public ModelResponse interceptModel(ModelRequest request, ModelCallHandler handler) {
       // 先调用模型生成答案
       ModelResponse response = handler.call(request);
-      System.out.println(response.getClass().getName());
-      System.out.println(response.getMessage().toString());
-      System.out.println(response.getChatResponse().toString());
-
-
       // 这一步验证回答质量，需要注意的是，官方的示例给了错误的API，这里需要替换为ChatResponse的API
       AssistantMessage answer = response.getChatResponse().getResult().getOutput();
       AnswerValidation isValid = validateAnswer(answer.getText(), request);

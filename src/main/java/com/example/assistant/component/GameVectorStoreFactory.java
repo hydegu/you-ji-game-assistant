@@ -21,7 +21,7 @@ public class GameVectorStoreFactory {
     private final MilvusServiceClient milvusClient;
     private final EmbeddingModel embeddingModel;
     
-    // 缓存：避免同一个游戏重复创建
+    // 缓存：避免同一个Vector重复创建
     private final Map<Long, VectorStore> cache = new ConcurrentHashMap<>();
 
     /**
