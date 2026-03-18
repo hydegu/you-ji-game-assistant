@@ -11,45 +11,30 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 /**
- * 游戏实体
- * @TableName game
+ * 游戏分类实体
+ * @TableName game_category
  */
-@TableName(value = "game")
+@TableName(value = "game_category")
 @Data
-public class Game implements Serializable {
-
+public class GameCategory implements Serializable {
+    
     @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
-     * 游戏名称
+     * 分类名称
      */
     private String name;
 
     /**
-     * 游戏详情/简介
+     * 分类描述
      */
     private String description;
 
     /**
-     * 游戏主图（URL）
+     * 排序权重（数值越大越靠前）
      */
-    private String image;
-
-    /**
-     * 分类ID
-     */
-    private Long categoryId;
-
-    /**
-     * 状态：0=下架，1=上架
-     */
-    private Integer status;
-
-    /**
-     * 开发商
-     */
-    private String developer;
+    private Integer sortOrder;
 
     /**
      * 创建时间
@@ -66,12 +51,6 @@ public class Game implements Serializable {
      */
     @TableLogic
     private LocalDateTime deletedTime;
-
-    /**
-     * 关联的分类信息（非数据库字段）
-     */
-    @TableField(exist = false)
-    private GameCategory category;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

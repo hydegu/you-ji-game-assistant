@@ -9,13 +9,34 @@
             <result property="name" column="name" jdbcType="VARCHAR"/>
             <result property="description" column="description" jdbcType="VARCHAR"/>
             <result property="image" column="image" jdbcType="VARCHAR"/>
+            <result property="categoryId" column="category_id" jdbcType="BIGINT"/>
+            <result property="status" column="status" jdbcType="INTEGER"/>
+            <result property="developer" column="developer" jdbcType="VARCHAR"/>
             <result property="createdTime" column="created_time" jdbcType="TIMESTAMP"/>
             <result property="updatedTime" column="updated_time" jdbcType="TIMESTAMP"/>
             <result property="deletedTime" column="deleted_time" jdbcType="TIMESTAMP"/>
     </resultMap>
 
+    <resultMap id="GameWithCategoryResultMap" type="com.example.assistant.entity.Game" extends="BaseResultMap">
+            <association property="category" javaType="com.example.assistant.entity.GameCategory">
+                    <id property="id" column="category_id" jdbcType="BIGINT"/>
+                    <result property="name" column="category_name" jdbcType="VARCHAR"/>
+                    <result property="description" column="category_description" jdbcType="VARCHAR"/>
+            </association>
+    </resultMap>
+
     <sql id="Base_Column_List">
-        id,name,description,image,created_time,updated_time,
-        deleted_time
+        id, name, description, image, category_id, status, developer, 
+        created_time, updated_time, deleted_time
     </sql>
+
+    <select id="selectGameWithCategoryById" resultMap="GameWithCategoryResultMap">
+        SELECT g.*, 
+               c.id as category_id,
+               c.name as category_name,
+               c.description as category_description
+        FROM game g
+        LEFT JOIN game_category c ON g.category_id = c.id
+        WHERE g.id = #{id}
+    </select>
 </mapper>
