@@ -32,7 +32,7 @@ public class GameVectorStoreFactory {
         return cache.computeIfAbsent(gameId, id ->
                 MilvusVectorStore.builder(milvusClient, embeddingModel)
                         .collectionName("game_" + id)  // "game_1001"
-                        .databaseName(DataBase.NAME)
+                        .databaseName("default")
                         .indexType(IndexType.IVF_FLAT)
                         .metricType(MetricType.COSINE)
                         .embeddingDimension(1024)

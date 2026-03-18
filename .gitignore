@@ -33,3 +33,5 @@ build/
 
 .env
 volumes
+plan
+.claude

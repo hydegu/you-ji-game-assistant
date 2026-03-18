@@ -8,7 +8,10 @@ spring:
     name: spring-ai-helloworld
   ai:
     dashscope:
-      api-key: ${AI_DASHSCOPE_API_KEY}
+      api-key: sk-e6caf87577e0464a93db065c4194a4b5
+      chat:
+        options:
+          model: qwen-plus
     vectorstore:
       milvus:
         client:
@@ -19,7 +22,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/you_ji_assistant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
-    password: root
+    password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:

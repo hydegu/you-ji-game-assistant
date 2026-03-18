@@ -17,13 +17,14 @@ import java.util.List;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.rag.Query;
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
+import org.springframework.stereotype.Component;
 
 @HookPositions({HookPosition.BEFORE_AGENT})
 @AllArgsConstructor
+@Component
 public class QueryEnhancementHook extends AgentHook {
 
     private final RewriteQueryTransformer transformer;
-    private final ChatModel chatModel;
     private static final String ENHANCED_QUERY_KEY = "enhanced_query";
 
 

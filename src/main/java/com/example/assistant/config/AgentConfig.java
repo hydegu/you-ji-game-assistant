@@ -1,20 +1,41 @@
 package com.example.assistant.config;
 
+import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.example.assistant.component.GameVectorStoreFactory;
+import com.example.assistant.constant.Prompts;
+import com.example.assistant.hooks.QueryEnhancementHook;
+import com.example.assistant.intercepter.AnswerValidationInterceptor;
+import com.example.assistant.tools.DatabaseQueryTool;
+import com.example.assistant.tools.GameTool;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.param.ConnectParam;
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.function.FunctionToolCallback;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+import java.util.function.Function;
+
 @Configuration
+@Slf4j
+@RequiredArgsConstructor
 public class AgentConfig {
 
     @Value("${milvus.host}")
     private String host;
     @Value("${milvus.port}")
     private Integer port;
+
+    private final ChatModel chatModel;
 
     /**
      * 定义一个名为 milvusServiceClient 的Bean，用于创建并返回一个 MilvusServiceClient 实例。
@@ -33,6 +54,17 @@ public class AgentConfig {
         return RewriteQueryTransformer.builder()
                 .chatClientBuilder(builder)
                 .targetSearchSystem("游戏知识库")  // 设定改写场景
+                .build();
+    }
+
+    @Bean
+    @Qualifier("validAgent")
+    public ReactAgent validAgent(){
+        return ReactAgent.builder()
+                .name("valid_agent")
+                .model(chatModel)
+                .instruction(Prompts.PROMPT_VALID)
+                .description(Prompts.AGENT_VALID)
                 .build();
     }
 }

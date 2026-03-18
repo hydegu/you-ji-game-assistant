@@ -24,6 +24,8 @@ public class User implements Serializable {
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
 
+    private LocalDateTime deletedTime;
+
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedTime;
 }

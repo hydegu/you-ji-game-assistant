@@ -9,11 +9,12 @@
         <result column="password"     property="password"/>
         <result column="role"         property="role"/>
         <result column="created_time" property="createdTime"/>
+        <result column="deleted_time" property="deletedTime"/>
         <result column="updated_time" property="updatedTime"/>
     </resultMap>
 
     <select id="selectByUsername" resultMap="UserResultMap">
-        SELECT * FROM users WHERE username = #{username} LIMIT 1
+        SELECT * FROM users WHERE username = #{username}
     </select>
 
 </mapper>
