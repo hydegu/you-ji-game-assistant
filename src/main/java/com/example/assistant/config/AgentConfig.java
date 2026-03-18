@@ -42,6 +42,8 @@ public class AgentConfig {
     private String host;
     @Value("${milvus.port}")
     private Integer port;
+    @Value("${game.assistant.chunk-size}")
+    private Integer chunkSize;
 
     private final ChatModel chatModel;
 
@@ -103,6 +105,12 @@ public class AgentConfig {
 
     @Bean
     public TokenTextSplitter textSplitter(){
-        return new TokenTextSplitter();
+        return new TokenTextSplitter(
+                chunkSize, // chunkSize
+                50,        // minChunkSizeChars
+                5,         // minChunkLengthToEmbed
+                10000,     // maxNumChunks
+                true       // keepSeparator
+        );
     }
 }

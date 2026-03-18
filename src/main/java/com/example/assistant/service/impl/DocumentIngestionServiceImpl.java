@@ -37,12 +37,11 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
 
     @Override
     public void ingest(Long gameId, List<Document> rawDocuments) {
+        // 走切块策略：先按段落切，以固定token+overlap策略兜底
+        // 这里不需要担心丢失metadata，因为Spring AI自动把metadata分配到了每个chunk
         List<Document> chunks = rawDocuments.stream()
                 .flatMap(doc -> chunkService.split(doc).stream())
                 .toList();
-
-        chunks.forEach(chunk ->
-                chunk.getMetadata().put("gameId", gameId.toString()));
 
         // VectorStore 内部会自动调用 EmbeddingModel 向量化，无需手动embedding
         factory.getStore(gameId).add(chunks);
@@ -61,6 +60,11 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
 
         // 2. 文本分割（将大文档分割成小块）
         List<Document> splitDocuments = textSplitter.transform(raw);
+        splitDocuments.forEach(chunk ->
+        {
+            chunk.getMetadata().put("gameId", gameId.toString());
+            chunk.getMetadata().put("fileName",fileName);
+        });
 
         ingest(gameId, splitDocuments);
     }
