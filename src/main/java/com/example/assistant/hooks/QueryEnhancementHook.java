@@ -27,7 +27,6 @@ public class QueryEnhancementHook extends AgentHook {
     private final RewriteQueryTransformer transformer;
     private static final String ENHANCED_QUERY_KEY = "enhanced_query";
 
-
     @Override
     public String getName() {
       return "query_enhancement";

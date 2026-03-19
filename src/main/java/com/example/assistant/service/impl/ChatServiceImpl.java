@@ -1,10 +1,14 @@
 package com.example.assistant.service.impl;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
+import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesModelHook;
 import com.alibaba.cloud.ai.graph.agent.interceptor.todolist.TodoListInterceptor;
+import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
+import com.alibaba.cloud.ai.graph.store.stores.DatabaseStore;
+import com.example.assistant.component.UserPreferenceStore;
 import com.example.assistant.constant.Prompts;
 import com.example.assistant.dto.request.ChatRequest;
 import com.example.assistant.dto.response.ChatResponse;
@@ -15,6 +19,7 @@ import com.example.assistant.intercepter.AnswerValidationInterceptor;
 import com.example.assistant.service.ChatService;
 import com.example.assistant.tools.DatabaseQueryTool;
 import com.example.assistant.tools.GameTool;
+import com.example.assistant.utils.SecurityUtils;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +46,8 @@ public class ChatServiceImpl implements ChatService {
     @Qualifier("summarize")
     private final MessagesModelHook summarizationHook;
     private final PreferenceLearningHook preferenceLearningHook;
+    private final MemorySaver mysqlSaver;
+    private final DatabaseStore databaseStore;
 
     @Override
     public AssistantMessage chat(ChatRequest request) throws GraphRunnerException {
@@ -65,6 +72,7 @@ public class ChatServiceImpl implements ChatService {
                 .interceptors(answerValidationInterceptor, TodoListInterceptor.builder().build()) //验证回答、自动规划
                 .description(Prompts.AGENT_MAIN)
                 .enableLogging(true)
+                .saver(mysqlSaver)
                 .instruction("你可以访问两个信息源：" +
                         "1. database_query - 用于内部数据\n" +
                         "2. documentSearch - 用于文档库\n" +
@@ -77,7 +85,14 @@ public class ChatServiceImpl implements ChatService {
                         .build())
                 .tools(List.of(databaseQueryCallback, documentSearchCallback))
                 .build();
-        AssistantMessage response = agent.call(request.getQuestion());
+
+        RunnableConfig config = RunnableConfig.builder()
+                .threadId("learning_thread")
+                .addMetadata("user_id", SecurityUtils.getCurrentUserId())
+                .store(databaseStore)
+                .build();
+
+        AssistantMessage response = agent.call(request.getQuestion(),config);
         log.info("RAG调用完成");
         return response;
     }
