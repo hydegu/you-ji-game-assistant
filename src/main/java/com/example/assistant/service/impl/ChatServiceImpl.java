@@ -2,11 +2,14 @@ package com.example.assistant.service.impl;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesModelHook;
+import com.alibaba.cloud.ai.graph.agent.interceptor.todolist.TodoListInterceptor;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 import com.example.assistant.constant.Prompts;
 import com.example.assistant.dto.request.ChatRequest;
 import com.example.assistant.dto.response.ChatResponse;
 import com.example.assistant.exception.BusinessException;
+import com.example.assistant.hooks.PreferenceLearningHook;
 import com.example.assistant.hooks.QueryEnhancementHook;
 import com.example.assistant.intercepter.AnswerValidationInterceptor;
 import com.example.assistant.service.ChatService;
@@ -35,6 +38,9 @@ public class ChatServiceImpl implements ChatService {
     private final ChatModel chatModel;
     private final QueryEnhancementHook queryEnhancementHook;
     private final AnswerValidationInterceptor answerValidationInterceptor;
+    @Qualifier("summarize")
+    private final MessagesModelHook summarizationHook;
+    private final PreferenceLearningHook preferenceLearningHook;
 
     @Override
     public AssistantMessage chat(ChatRequest request) throws GraphRunnerException {
@@ -55,8 +61,8 @@ public class ChatServiceImpl implements ChatService {
         ReactAgent agent = ReactAgent.builder()
                 .name("game_agent_" + request.getGameId())
                 .model(chatModel)
-                .hooks(queryEnhancementHook) //增强消息
-                .interceptors(answerValidationInterceptor) //验证回答
+                .hooks(queryEnhancementHook,summarizationHook,preferenceLearningHook) //增强消息、自动压缩会话、自动生成用户画像（长期记忆）
+                .interceptors(answerValidationInterceptor, TodoListInterceptor.builder().build()) //验证回答、自动规划
                 .description(Prompts.AGENT_MAIN)
                 .enableLogging(true)
                 .instruction("你可以访问两个信息源：" +

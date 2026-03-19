@@ -2,6 +2,15 @@ package com.example.assistant.config;
 
 import com.alibaba.cloud.ai.document.DocumentParser;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesModelHook;
+import com.alibaba.cloud.ai.graph.agent.hook.summarization.SummarizationHook;
+import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
+import com.alibaba.cloud.ai.graph.checkpoint.savers.mysql.CreateOption;
+import com.alibaba.cloud.ai.graph.checkpoint.savers.mysql.MysqlSaver;
+import com.alibaba.cloud.ai.graph.checkpoint.savers.redis.RedisSaver;
+import com.alibaba.cloud.ai.graph.serializer.plain_text.jackson.JacksonStateSerializer;
+import com.alibaba.cloud.ai.graph.store.stores.DatabaseStore;
+import com.alibaba.cloud.ai.graph.store.stores.MemoryStore;
 import com.alibaba.cloud.ai.parser.tika.TikaDocumentParser;
 import com.alibaba.cloud.ai.transformer.splitter.SentenceSplitter;
 import com.example.assistant.component.GameVectorStoreFactory;
@@ -31,6 +40,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.function.Function;
 
@@ -118,5 +128,29 @@ public class AgentConfig {
     @Bean
     public Tika tika(){
         return new Tika();
+    }
+
+    @Bean
+    public MemorySaver mysqlSaver(DataSource datasource){
+        return new MysqlSaver.Builder()
+                .createOption(CreateOption.CREATE_IF_NOT_EXISTS)
+                .dataSource(datasource)
+                .build();
+    }
+
+
+    @Bean("summarize")
+    public MessagesModelHook summarizationHook(){
+        // 创建消息压缩 Hook
+        return SummarizationHook.builder()
+                .model(chatModel)
+                .maxTokensBeforeSummary(4000)
+                .messagesToKeep(20)
+                .build();
+    }
+
+    @Bean
+    public DatabaseStore mysqlStore(DataSource dataSource){
+        return new DatabaseStore(dataSource);
     }
 }
