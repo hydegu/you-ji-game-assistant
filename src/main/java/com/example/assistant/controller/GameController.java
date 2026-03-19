@@ -10,6 +10,9 @@ import com.example.assistant.entity.GameCategory;
 import com.example.assistant.exception.BusinessException;
 import com.example.assistant.service.GameCategoryService;
 import com.example.assistant.service.GameService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +21,7 @@ import java.util.List;
 /**
  * 游戏管理控制器
  */
+@Tag(name = "游戏管理", description = "游戏及分类的增删改查接口")
 @RestController
 @RequestMapping("/api")
 public class GameController {
@@ -35,12 +39,13 @@ public class GameController {
     /**
      * 游戏列表（分页）
      */
+    @Operation(summary = "游戏列表", description = "分页查询游戏列表，支持按分类或关键字筛选")
     @GetMapping("/games")
     public ApiResponse<Page<Game>> listGames(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) String keyword) {
+            @Parameter(description = "页码，默认1") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页数量，默认10") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "分类ID，不传则查全部") @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "游戏名关键字") @RequestParam(required = false) String keyword) {
         
         Page<Game> pageParam = new Page<>(page, size);
         
@@ -64,8 +69,9 @@ public class GameController {
     /**
      * 游戏详情
      */
+    @Operation(summary = "游戏详情", description = "根据ID获取游戏详情（含分类信息）")
     @GetMapping("/games/{id}")
-    public ApiResponse<Game> getGame(@PathVariable Long id) {
+    public ApiResponse<Game> getGame(@Parameter(description = "游戏ID") @PathVariable Long id) {
         Game game = gameService.getWithCategoryById(id);
         if (game == null) {
             throw new BusinessException("游戏不存在");
@@ -76,6 +82,7 @@ public class GameController {
     /**
      * 创建游戏
      */
+    @Operation(summary = "创建游戏")
     @PostMapping("/games")
     public ApiResponse<Game> createGame(@Valid @RequestBody GameCreateRequest request) {
         if (gameService.existsByName(request.getName())) {
@@ -102,8 +109,9 @@ public class GameController {
     /**
      * 更新游戏
      */
+    @Operation(summary = "更新游戏", description = "局部更新，仅传入需要修改的字段")
     @PutMapping("/games/{id}")
-    public ApiResponse<Game> updateGame(@PathVariable Long id, 
+    public ApiResponse<Game> updateGame(@Parameter(description = "游戏ID") @PathVariable Long id,
                                          @Valid @RequestBody GameUpdateRequest request) {
         Game game = gameService.getById(id);
         if (game == null) {
@@ -142,8 +150,9 @@ public class GameController {
     /**
      * 删除游戏
      */
+    @Operation(summary = "删除游戏")
     @DeleteMapping("/games/{id}")
-    public ApiResponse<Void> deleteGame(@PathVariable Long id) {
+    public ApiResponse<Void> deleteGame(@Parameter(description = "游戏ID") @PathVariable Long id) {
         if (!gameService.existsById(id)) {
             throw new BusinessException("游戏不存在");
         }
@@ -154,8 +163,9 @@ public class GameController {
     /**
      * 切换游戏状态
      */
+    @Operation(summary = "切换游戏上下架状态")
     @PostMapping("/games/{id}/toggle")
-    public ApiResponse<Void> toggleGameStatus(@PathVariable Long id) {
+    public ApiResponse<Void> toggleGameStatus(@Parameter(description = "游戏ID") @PathVariable Long id) {
         gameService.toggleStatus(id);
         return ApiResponse.ok();
     }
@@ -165,6 +175,7 @@ public class GameController {
     /**
      * 分类列表
      */
+    @Operation(summary = "分类列表", description = "获取所有分类，按排序字段升序排列")
     @GetMapping("/categories")
     public ApiResponse<List<GameCategory>> listCategories() {
         return ApiResponse.ok(categoryService.listAllOrderBySort());
@@ -173,8 +184,9 @@ public class GameController {
     /**
      * 分类详情
      */
+    @Operation(summary = "分类详情")
     @GetMapping("/categories/{id}")
-    public ApiResponse<GameCategory> getCategory(@PathVariable Long id) {
+    public ApiResponse<GameCategory> getCategory(@Parameter(description = "分类ID") @PathVariable Long id) {
         GameCategory category = categoryService.getById(id);
         if (category == null) {
             throw new BusinessException("分类不存在");
@@ -185,6 +197,7 @@ public class GameController {
     /**
      * 创建分类
      */
+    @Operation(summary = "创建分类")
     @PostMapping("/categories")
     public ApiResponse<GameCategory> createCategory(@Valid @RequestBody CategoryCreateRequest request) {
         if (categoryService.existsByName(request.getName())) {
@@ -203,8 +216,9 @@ public class GameController {
     /**
      * 更新分类
      */
+    @Operation(summary = "更新分类")
     @PutMapping("/categories/{id}")
-    public ApiResponse<GameCategory> updateCategory(@PathVariable Long id, 
+    public ApiResponse<GameCategory> updateCategory(@Parameter(description = "分类ID") @PathVariable Long id,
                                                      @Valid @RequestBody CategoryCreateRequest request) {
         GameCategory category = categoryService.getById(id);
         if (category == null) {
@@ -222,8 +236,9 @@ public class GameController {
     /**
      * 删除分类
      */
+    @Operation(summary = "删除分类", description = "分类下存在游戏时不允许删除")
     @DeleteMapping("/categories/{id}")
-    public ApiResponse<Void> deleteCategory(@PathVariable Long id) {
+    public ApiResponse<Void> deleteCategory(@Parameter(description = "分类ID") @PathVariable Long id) {
         if (!categoryService.existsById(id)) {
             throw new BusinessException("分类不存在");
         }

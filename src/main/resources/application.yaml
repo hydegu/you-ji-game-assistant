@@ -32,6 +32,12 @@ mybatis-plus:
   mapper-locations: classpath*:com/example/assistant/mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: AUTO
+      logic-delete-field: deleted_at
+      logic-delete-value: 'now()'
+      logic-not-delete-value: 'null'
 
 app:
   jwt:
@@ -73,3 +79,17 @@ file:
       - application/octet-stream     # 二进制流
       - application/x-x509-ca-cert
     max-size: 104857600
+
+
+# Springdoc OpenAPI (Swagger) 配置 - 仅开发环境启用
+springdoc:
+  api-docs:
+    path: /v3/api-docs  # API文档路径
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html  # Swagger UI路径
+    enabled: true
+    tags-sorter: alpha  # 标签按字母排序
+    operations-sorter: alpha  # 接口按字母排序
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
