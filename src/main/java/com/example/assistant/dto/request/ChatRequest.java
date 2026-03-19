@@ -18,7 +18,7 @@ public class ChatRequest {
 
     @NotNull(message = "会话id不可为空")
     @Schema(description = "会话id")
-    private Integer sessionId;
+    private String sessionId;
 
     @Schema(description = "是否开启思考模式")
     private Boolean isThinking = false;

@@ -87,7 +87,7 @@ public class ChatServiceImpl implements ChatService {
                 .build();
 
         RunnableConfig config = RunnableConfig.builder()
-                .threadId("learning_thread")
+                .threadId(request.getSessionId())
                 .addMetadata("user_id", SecurityUtils.getCurrentUserId())
                 .store(databaseStore)
                 .build();
