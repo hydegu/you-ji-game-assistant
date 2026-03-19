@@ -15,6 +15,7 @@ import io.milvus.param.ConnectParam;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tika.Tika;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.embedding.TokenCountBatchingStrategy;
@@ -112,5 +113,10 @@ public class AgentConfig {
                 10000,     // maxNumChunks
                 true       // keepSeparator
         );
+    }
+
+    @Bean
+    public Tika tika(){
+        return new Tika();
     }
 }

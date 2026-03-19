@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+
+import lombok.Builder;
 import lombok.Data;
 
 /**
@@ -14,6 +16,7 @@ import lombok.Data;
  */
 @TableName(value ="knowledge_docs")
 @Data
+@Builder
 public class KnowledgeDocs implements Serializable {
     /**
      * 文档ID
@@ -24,17 +27,32 @@ public class KnowledgeDocs implements Serializable {
     /**
      * 游戏ID
      */
-    private String gameId;
+    private Long gameId;
+
+    /**
+     * 文件名
+     */
+    private String fileName;
 
     /**
      * 原始文件名
      */
-    private String fileName;
+    private String fileNameOrigin;
 
     /**
      * 文件类型（pdf/txt/docx等）
      */
     private String fileType;
+
+    /**
+     * 文件大小（byte）
+     */
+    private Long fileSize;
+
+    /**
+     * 文件路径
+     */
+    private String fileUrl;
 
     /**
      * 文档分片数量

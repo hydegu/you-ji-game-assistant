@@ -42,3 +42,34 @@ game:
   assistant:
     chunk-size: 400
     overlap-ratio: 0.15
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# 文件存储配置
+file:
+  storage:
+    type: local
+    local:
+      base-path: ${FILE_STORAGE_PATH:./data/upload/files}
+      url-prefix: ${FILE_URL_PREFIX:http://localhost:8080/files}
+    allowed-types:
+      - image/jpeg
+      - image/png
+      - image/gif
+      - image/webp
+      - image/svg+xml
+      - application/pdf
+      - application/msword
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      - application/vnd.ms-excel
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      - text/plain
+      - application/zip
+      - application/x-rar-compressed
+      - application/x-pem-file        # 标准 PEM 类型
+      - application/octet-stream     # 二进制流
+      - application/x-x509-ca-cert
+    max-size: 104857600
