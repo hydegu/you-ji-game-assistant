@@ -3,6 +3,7 @@ package com.example.assistant.component;
 import com.alibaba.cloud.ai.graph.store.StoreItem;
 import com.alibaba.cloud.ai.graph.store.stores.DatabaseStore;
 import com.alibaba.cloud.ai.graph.store.stores.MemoryStore;
+import com.alibaba.cloud.ai.graph.store.stores.RedisStore;
 import com.example.assistant.pojo.UserGamePreference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
@@ -18,7 +19,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserPreferenceStore {
 
-    private final DatabaseStore memoryStore;  // 注入框架提供的底层存储
+    private final RedisStore memoryStore;  // 注入框架提供的底层存储
     private final ObjectMapper objectMapper;
 
     private static final List<String> NAMESPACE = List.of("preferences");

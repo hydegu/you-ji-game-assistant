@@ -11,6 +11,7 @@ import com.alibaba.cloud.ai.graph.checkpoint.savers.redis.RedisSaver;
 import com.alibaba.cloud.ai.graph.serializer.plain_text.jackson.JacksonStateSerializer;
 import com.alibaba.cloud.ai.graph.store.stores.DatabaseStore;
 import com.alibaba.cloud.ai.graph.store.stores.MemoryStore;
+import com.alibaba.cloud.ai.graph.store.stores.RedisStore;
 import com.alibaba.cloud.ai.parser.tika.TikaDocumentParser;
 import com.alibaba.cloud.ai.transformer.splitter.SentenceSplitter;
 import com.example.assistant.component.GameVectorStoreFactory;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.embedding.TokenCountBatchingStrategy;
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
 import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
@@ -57,6 +59,7 @@ public class AgentConfig {
     private Integer chunkSize;
 
     private final ChatModel chatModel;
+    private final Prompts prompts;
 
     /**
      * 定义一个名为 milvusServiceClient 的Bean，用于创建并返回一个 MilvusServiceClient 实例。
@@ -68,14 +71,6 @@ public class AgentConfig {
                         .withHost(host)
                         .withPort(port)
                         .build());
-    }
-
-    @Bean
-    public RewriteQueryTransformer rewriteQueryTransformer(ChatClient.Builder builder) {
-        return RewriteQueryTransformer.builder()
-                .chatClientBuilder(builder)
-                .targetSearchSystem("游戏知识库")  // 设定改写场景
-                .build();
     }
 
     @Bean
@@ -150,7 +145,29 @@ public class AgentConfig {
     }
 
     @Bean
-    public DatabaseStore mysqlStore(DataSource dataSource){
-        return new DatabaseStore(dataSource);
+    public RedisStore memoryStore(DataSource dataSource){
+        return new RedisStore("userProfiles:");
+    }
+
+    @Bean
+    public RewriteQueryTransformer rewriteQueryTransformer(ChatClient.Builder builder) {
+        return RewriteQueryTransformer.builder()
+                .chatClientBuilder(builder)
+                .targetSearchSystem("游戏知识库")
+                .promptTemplate(new PromptTemplate("""
+                 你的任务是改写用户的查询，使其更适合在{target}中检索。
+
+                 【重要规则】
+                 如果用户的输入是以下类型，请原样返回，不做任何改写：
+                 - 关于对话本身的问题（如"我刚才说了什么"、"你之前回答了什么"）
+                 - 日常寒暄或闲聊（如"你好"、"谢谢"）
+                 - 对上一条回答的追问（如"为什么"、"能详细说说吗"）
+
+                 只对明确询问游戏内容的问题进行改写，使其更具体、更适合检索。
+
+                 用户输入：{query}
+                 改写后的查询：
+                 """))
+                .build();
     }
 }

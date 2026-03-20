@@ -42,7 +42,7 @@ public class PreferenceLearningHook extends ModelHook {
 
     @Override
     public CompletableFuture<Map<String, Object>> afterModel(OverAllState state, RunnableConfig config) {
-        String userId = (String) config.metadata("user_id").orElse(null);
+        String userId = config.metadata("user_id").map(Object::toString).orElse(null);
         if (userId == null) {
             return CompletableFuture.completedFuture(Map.of());
         }

@@ -4,6 +4,7 @@ import com.example.assistant.entity.User;
 import com.example.assistant.mapper.UserMapper;
 import com.example.assistant.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.UtilityClass;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,7 +14,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
 public final class SecurityUtils {
 
     private static UserMapper userMapper;

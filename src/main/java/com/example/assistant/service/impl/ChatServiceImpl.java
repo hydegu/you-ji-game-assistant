@@ -7,7 +7,7 @@ import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesModelHook;
 import com.alibaba.cloud.ai.graph.agent.interceptor.todolist.TodoListInterceptor;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
-import com.alibaba.cloud.ai.graph.store.stores.DatabaseStore;
+import com.alibaba.cloud.ai.graph.store.stores.RedisStore;
 import com.example.assistant.component.UserPreferenceStore;
 import com.example.assistant.constant.Prompts;
 import com.example.assistant.dto.request.ChatRequest;
@@ -30,6 +30,7 @@ import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import javax.tools.Tool;
 import java.util.List;
 import java.util.function.Function;
 
@@ -47,15 +48,21 @@ public class ChatServiceImpl implements ChatService {
     private final MessagesModelHook summarizationHook;
     private final PreferenceLearningHook preferenceLearningHook;
     private final MemorySaver mysqlSaver;
-    private final DatabaseStore databaseStore;
+    private final RedisStore redisStore;
 
     @Override
     public AssistantMessage chat(ChatRequest request) throws GraphRunnerException {
         log.info("RAG调用开始");
         // 数据库搜索 这个工具其实可以不用tools而是使用methodtools传递
         // 不过因为文档搜索工具是动态传递gameId，所以顺便用toolCallBack包一层然后直接用tools
-        ToolCallback databaseQueryCallback = buildCallback("database_query",
-                dbQueryTool::query, Long.class, "查询内部数据库");
+//        ToolCallback databaseQueryCallback = buildCallback("database_query",
+//                dbQueryTool::query, Long.class, "查询内部数据库");
+        ToolCallback databaseQueryCallback = FunctionToolCallback.builder(
+                "database_query",
+                (Function<DatabaseQueryTool.NoArgs,DatabaseQueryTool.Response>) args -> dbQueryTool.query(request.getGameId()))
+                .description("查询当前游戏的基本信息，无需传入任何参数")
+                .inputType(DatabaseQueryTool.NoArgs.class)
+                .build();
 
         // 依赖 gameId 的
         ToolCallback documentSearchCallback = FunctionToolCallback.builder(
@@ -73,10 +80,22 @@ public class ChatServiceImpl implements ChatService {
                 .description(Prompts.AGENT_MAIN)
                 .enableLogging(true)
                 .saver(mysqlSaver)
-                .instruction("你可以访问两个信息源：" +
-                        "1. database_query - 用于内部数据\n" +
-                        "2. documentSearch - 用于文档库\n" +
-                        "根据问题选择最合适的工具。")
+                .instruction(String.format("""
+                        当前用户正在咨询 gameId=%d 的游戏助手。
+                        
+                             【工具说明】
+                             1. database_query - 查询当前游戏基本信息（名称、简介），无需传参
+                             2. document_search - 搜索游戏详细文档（攻略、角色、剧情等）
+                        
+                             【何时调用工具】
+                             仅当用户询问游戏内容时（如角色技能、攻略、剧情、版本信息等）才调用工具。
+                        
+                             【何时直接回答，不得调用工具】
+                             以下情况直接根据对话上下文回答，禁止调用任何工具：
+                             - 询问对话历史（如"我刚才说了什么"、"你上次回答了什么"）
+                             - 日常寒暄（如"你好"、"谢谢"）
+                             - 对已有回答的追问、确认或反馈
+                        """, request.getGameId()))
                 .chatOptions(DashScopeChatOptions.builder()
                         .temperature(0.3)
                         .topP(0.7)
@@ -88,8 +107,8 @@ public class ChatServiceImpl implements ChatService {
 
         RunnableConfig config = RunnableConfig.builder()
                 .threadId(request.getSessionId())
-                .addMetadata("user_id", SecurityUtils.getCurrentUserId())
-                .store(databaseStore)
+                .addMetadata("user_id", SecurityUtils.getCurrentUserId().toString())
+                .store(redisStore)
                 .build();
 
         AssistantMessage response = agent.call(request.getQuestion(),config);

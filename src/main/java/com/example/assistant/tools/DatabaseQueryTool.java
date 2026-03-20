@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class DatabaseQueryTool {
     private final GameMapper gameMapper;
+    public record NoArgs() {}
     public Response query(Long gameId) {
         try {
             Game info = gameMapper.selectById(gameId);
