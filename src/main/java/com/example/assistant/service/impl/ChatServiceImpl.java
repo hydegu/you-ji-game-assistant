@@ -17,6 +17,7 @@ import com.example.assistant.hooks.PreferenceLearningHook;
 import com.example.assistant.hooks.QueryEnhancementHook;
 import com.example.assistant.intercepter.AnswerValidationInterceptor;
 import com.example.assistant.service.ChatService;
+import com.example.assistant.service.ChatSessionService;
 import com.example.assistant.tools.DatabaseQueryTool;
 import com.example.assistant.tools.GameTool;
 import com.example.assistant.utils.SecurityUtils;
@@ -49,10 +50,25 @@ public class ChatServiceImpl implements ChatService {
     private final PreferenceLearningHook preferenceLearningHook;
     private final MemorySaver mysqlSaver;
     private final RedisStore redisStore;
+    private final ChatSessionService chatSessionService;
 
     @Override
     public AssistantMessage chat(ChatRequest request) throws GraphRunnerException {
         log.info("RAG调用开始");
+        // 获取当前登录用户的 ID
+        Long userId = SecurityUtils.getCurrentUserId();
+        // ========================================================
+        // 【新增 Step A】幂等创建会话元数据
+        // 首次调用时：在 chat_session 表新建一行，标题取自 question
+        // 后续调用时：找到已有记录直接返回，不做任何修改
+        // 必须放在 agent.call() 之前，这样 firstQuestion 才能被捕获为标题
+        // ========================================================
+        chatSessionService.createOrGet(
+                request.getSessionId(),
+                userId,
+                request.getGameId(),
+                request.getQuestion()
+        );
         // 数据库搜索 这个工具其实可以不用tools而是使用methodtools传递
         // 不过因为文档搜索工具是动态传递gameId，所以顺便用toolCallBack包一层然后直接用tools
 //        ToolCallback databaseQueryCallback = buildCallback("database_query",
@@ -107,12 +123,23 @@ public class ChatServiceImpl implements ChatService {
 
         RunnableConfig config = RunnableConfig.builder()
                 .threadId(request.getSessionId())
-                .addMetadata("user_id", SecurityUtils.getCurrentUserId().toString())
+                .addMetadata("user_id", SecurityUtils.getCurrentUserId())
                 .store(redisStore)
                 .build();
 
         AssistantMessage response = agent.call(request.getQuestion(),config);
         log.info("RAG调用完成");
+        // ========================================================
+        // 【新增 Step B】持久化本轮消息到 chat_message 表，更新会话元数据
+        // 放在 agent.call() 之后：只有 AI 成功回复了才记录
+        // 如果 agent.call() 抛异常，此处不执行，消息不会被错误写入
+        // ========================================================
+        String answerText = response.getText() != null ? response.getText() : "[无文字回复]";
+        chatSessionService.onRoundComplete(
+                request.getSessionId(),
+                request.getQuestion(),
+                answerText
+        );
         return response;
     }
 

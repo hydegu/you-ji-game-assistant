@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    namespace 必须与 Mapper 接口的全限定类名完全一致
+    MyBatis 通过这个找到接口和 XML 的对应关系
+-->
+<mapper namespace="com.example.assistant.mapper.ChatMessageMapper">
+
+    <!--
+        resultMap: 定义数据库列名 → Java 字段名的映射关系
+        虽然 MyBatis Plus 开启了 mapUnderscoreToCamelCase（下划线转驼峰），
+        但显式写出来更清晰，也避免配置未生效时出问题。
+    -->
+    <resultMap id="ChatMessageResultMap" type="com.example.assistant.entity.ChatMessage">
+        <id     column="id"           property="id"/>
+        <result column="session_id"   property="sessionId"/>
+        <result column="role"         property="role"/>
+        <result column="content"      property="content"/>
+        <result column="created_time" property="createdTime"/>
+    </resultMap>
+
+    <!--
+        selectBySessionId: 按会话ID查询消息列表
+        ORDER BY created_time ASC, id ASC:
+          - 主排序: 创建时间升序（最早的消息在最前面，符合对话阅读习惯）
+          - 次排序: id升序（处理极端情况：同一毫秒内有多条消息时，按主键保证稳定顺序）
+    -->
+    <select id="selectBySessionId" resultMap="ChatMessageResultMap">
+        SELECT id, session_id, role, content, created_time
+        FROM chat_message
+        WHERE session_id = #{sessionId}
+        ORDER BY created_time ASC, id ASC
+    </select>
+
+</mapper>
