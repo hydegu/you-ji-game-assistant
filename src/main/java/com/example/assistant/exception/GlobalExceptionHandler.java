@@ -49,4 +49,12 @@ public class GlobalExceptionHandler {
         log.error("数据库操作失败: ", e);
         return ApiResponse.fail(500, "数据操作失败，请稍后重试");
     }
+
+    // 兜底：业务 RuntimeException（如用户名密码错误、用户名已存在等）
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleRuntimeException(RuntimeException ex) {
+        log.warn("业务异常: {}", ex.getMessage());
+        return ApiResponse.fail(400, ex.getMessage());
+    }
 }

@@ -1,5 +1,9 @@
 server:
   port: 8080
+
+logging:
+  level:
+    org.springframework.security: TRACE
 milvus:
   host: localhost
   port: 19530
