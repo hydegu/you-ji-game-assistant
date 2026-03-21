@@ -231,44 +231,47 @@ public class ChatServiceImpl implements ChatService {
 
         Flux<NodeOutput> stream = agent.stream(request.getQuestion(), config);
         return stream.filter(output -> output instanceof StreamingOutput)
-                        .map(output -> {
-                            StreamingOutput s = (StreamingOutput) output;
-                            OutputType type = s.getOutputType();
-                            Map<String,Object> event = new HashMap<>();
-                            if(type == OutputType.AGENT_MODEL_STREAMING){
-                                Message msg = s.message();
-                                if(msg instanceof AssistantMessage am){
-                                    Object reasoning = am.getMetadata().get("reasoningContent");
-                                    if(reasoning != null && !reasoning.toString().isEmpty()){
-                                        event.put("type","thinking");
-                                        event.put("text",reasoning.toString());
-                                    }else{
-                                        event.put("type","text");
-                                        event.put("text",am.getText());
-                                    }
-                                }
-                            }else if(type == OutputType.AGENT_MODEL_FINISHED){
-                                event.put("type","model_done");
-                                String answerText = s.message().getText() != null ? s.message().getText() : "[无文字回复]";
-                                try {
-                                    chatSessionService.onRoundComplete(
-                                            request.getSessionId(),
-                                            request.getQuestion(),
-                                            answerText
-                                    );
-                                }catch(Exception e){
-                                    log.error("保存消息记录失败, sessionId={}", request.getSessionId(), e);
-                                }
-                            }else if(type == OutputType.AGENT_TOOL_FINISHED){
-                                event.put("type","tool_done");
-                                event.put("node",output.node());
-                            }else return null;
-                            try{
-                                return objectMapper.writeValueAsString(event);
-                            } catch (JsonProcessingException e) {
-                                return null;
+                .handle((output, sink) -> {
+                    StreamingOutput s = (StreamingOutput) output;
+                    OutputType type = s.getOutputType();
+                    Map<String, Object> event = new HashMap<>();
+                    if (type == OutputType.AGENT_MODEL_STREAMING) {
+                        Message msg = s.message();
+                        if (msg instanceof AssistantMessage am) {
+                            Object reasoning = am.getMetadata().get("reasoningContent");
+                            if (reasoning != null && !reasoning.toString().isEmpty()) {
+                                event.put("type", "thinking");
+                                event.put("text", reasoning.toString());
+                            } else {
+                                event.put("type", "text");
+                                event.put("text", am.getText());
                             }
-                        }).filter(Objects::nonNull);
+                        }
+                    } else if (type == OutputType.AGENT_MODEL_FINISHED) {
+                        event.put("type", "model_done");
+                        String answerText = s.message().getText() != null ? s.message().getText() : "[无文字回复]";
+                        try {
+                            chatSessionService.onRoundComplete(
+                                    request.getSessionId(),
+                                    request.getQuestion(),
+                                    answerText
+                            );
+                        } catch (Exception e) {
+                            log.error("保存消息记录失败, sessionId={}", request.getSessionId(), e);
+                        }
+                    } else if (type == OutputType.AGENT_TOOL_FINISHED) {
+                        event.put("type", "tool_done");
+                        event.put("node", output.node());
+                    } else {
+                        return;
+                    }
+                    if (event.isEmpty()) return;
+                    try {
+                        sink.next(objectMapper.writeValueAsString(event));
+                    } catch (JsonProcessingException e) {
+                        // 序列化失败，跳过该事件
+                    }
+                });
     }
 
     // 工厂方法
