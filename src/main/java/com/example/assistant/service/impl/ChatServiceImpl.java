@@ -1,6 +1,7 @@
 package com.example.assistant.service.impl;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
+import com.alibaba.cloud.ai.graph.NodeOutput;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.agent.hook.messages.MessagesModelHook;
@@ -8,6 +9,8 @@ import com.alibaba.cloud.ai.graph.agent.interceptor.todolist.TodoListInterceptor
 import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 import com.alibaba.cloud.ai.graph.store.stores.RedisStore;
+import com.alibaba.cloud.ai.graph.streaming.OutputType;
+import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
 import com.example.assistant.component.UserPreferenceStore;
 import com.example.assistant.constant.Prompts;
 import com.example.assistant.dto.request.ChatRequest;
@@ -21,18 +24,25 @@ import com.example.assistant.service.ChatSessionService;
 import com.example.assistant.tools.DatabaseQueryTool;
 import com.example.assistant.tools.GameTool;
 import com.example.assistant.utils.SecurityUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import javax.tools.Tool;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 @Service
@@ -51,6 +61,7 @@ public class ChatServiceImpl implements ChatService {
     private final MemorySaver mysqlSaver;
     private final RedisStore redisStore;
     private final ChatSessionService chatSessionService;
+    private final ObjectMapper objectMapper;
 
     @Override
     public AssistantMessage chat(ChatRequest request) throws GraphRunnerException {
@@ -141,6 +152,123 @@ public class ChatServiceImpl implements ChatService {
                 answerText
         );
         return response;
+    }
+
+    @Override
+    public Flux<String> chatAsStream(ChatRequest request) throws GraphRunnerException {
+        log.info("RAG调用开始");
+        // 获取当前登录用户的 ID
+        Long userId = SecurityUtils.getCurrentUserId();
+        // ========================================================
+        // 【新增 Step A】幂等创建会话元数据
+        // 首次调用时：在 chat_session 表新建一行，标题取自 question
+        // 后续调用时：找到已有记录直接返回，不做任何修改
+        // 必须放在 agent.call() 之前，这样 firstQuestion 才能被捕获为标题
+        // ========================================================
+        chatSessionService.createOrGet(
+                request.getSessionId(),
+                userId,
+                request.getGameId(),
+                request.getQuestion()
+        );
+        // 数据库搜索 这个工具其实可以不用tools而是使用methodtools传递
+        // 不过因为文档搜索工具是动态传递gameId，所以顺便用toolCallBack包一层然后直接用tools
+//        ToolCallback databaseQueryCallback = buildCallback("database_query",
+//                dbQueryTool::query, Long.class, "查询内部数据库");
+        ToolCallback databaseQueryCallback = FunctionToolCallback.builder(
+                        "database_query",
+                        (Function<DatabaseQueryTool.NoArgs,DatabaseQueryTool.Response>) args -> dbQueryTool.query(request.getGameId()))
+                .description("查询当前游戏的基本信息，无需传入任何参数")
+                .inputType(DatabaseQueryTool.NoArgs.class)
+                .build();
+
+        // 依赖 gameId 的
+        ToolCallback documentSearchCallback = FunctionToolCallback.builder(
+                        "document_search",
+                        (Function<GameTool.Request, GameTool.Response>) req -> gameTool.search(request.getGameId(),req))
+                .description("搜索文档库")
+                .inputType(GameTool.Request.class)
+                .build();
+
+        ReactAgent agent = ReactAgent.builder()
+                .name("game_agent_" + request.getGameId())
+                .model(chatModel)
+                .hooks(queryEnhancementHook,summarizationHook,preferenceLearningHook) //增强消息、自动压缩会话、自动生成用户画像（长期记忆）
+                .interceptors(answerValidationInterceptor, TodoListInterceptor.builder().build()) //验证回答、自动规划
+                .description(Prompts.AGENT_MAIN)
+                .enableLogging(true)
+                .saver(mysqlSaver)
+                .instruction(String.format("""
+                        当前用户正在咨询 gameId=%d 的游戏助手。
+                        
+                             【工具说明】
+                             1. database_query - 查询当前游戏基本信息（名称、简介），无需传参
+                             2. document_search - 搜索游戏详细文档（攻略、角色、剧情等）
+                        
+                             【何时调用工具】
+                             仅当用户询问游戏内容时（如角色技能、攻略、剧情、版本信息等）才调用工具。
+                        
+                             【何时直接回答，不得调用工具】
+                             以下情况直接根据对话上下文回答，禁止调用任何工具：
+                             - 询问对话历史（如"我刚才说了什么"、"你上次回答了什么"）
+                             - 日常寒暄（如"你好"、"谢谢"）
+                             - 对已有回答的追问、确认或反馈
+                        """, request.getGameId()))
+                .chatOptions(DashScopeChatOptions.builder()
+                        .temperature(0.3)
+                        .topP(0.7)
+                        .enableThinking(request.getIsThinking())
+                        .maxToken(1024)
+                        .build())
+                .tools(List.of(databaseQueryCallback, documentSearchCallback))
+                .build();
+
+        RunnableConfig config = RunnableConfig.builder()
+                .threadId(request.getSessionId())
+                .addMetadata("user_id", SecurityUtils.getCurrentUserId())
+                .store(redisStore)
+                .build();
+
+        Flux<NodeOutput> stream = agent.stream(request.getQuestion(), config);
+        return stream.filter(output -> output instanceof StreamingOutput)
+                        .map(output -> {
+                            StreamingOutput s = (StreamingOutput) output;
+                            OutputType type = s.getOutputType();
+                            Map<String,Object> event = new HashMap<>();
+                            if(type == OutputType.AGENT_MODEL_STREAMING){
+                                Message msg = s.message();
+                                if(msg instanceof AssistantMessage am){
+                                    Object reasoning = am.getMetadata().get("reasoningContent");
+                                    if(reasoning != null && !reasoning.toString().isEmpty()){
+                                        event.put("type","thinking");
+                                        event.put("text",reasoning.toString());
+                                    }else{
+                                        event.put("type","text");
+                                        event.put("text",am.getText());
+                                    }
+                                }
+                            }else if(type == OutputType.AGENT_MODEL_FINISHED){
+                                event.put("type","model_done");
+                                String answerText = s.message().getText() != null ? s.message().getText() : "[无文字回复]";
+                                try {
+                                    chatSessionService.onRoundComplete(
+                                            request.getSessionId(),
+                                            request.getQuestion(),
+                                            answerText
+                                    );
+                                }catch(Exception e){
+                                    log.error("保存消息记录失败, sessionId={}", request.getSessionId(), e);
+                                }
+                            }else if(type == OutputType.AGENT_TOOL_FINISHED){
+                                event.put("type","tool_done");
+                                event.put("node",output.node());
+                            }else return null;
+                            try{
+                                return objectMapper.writeValueAsString(event);
+                            } catch (JsonProcessingException e) {
+                                return null;
+                            }
+                        }).filter(Objects::nonNull);
     }
 
     // 工厂方法

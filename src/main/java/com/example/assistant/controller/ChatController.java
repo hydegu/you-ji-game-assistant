@@ -10,10 +10,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 @Tag(name = "AI对话", description = "与游戏AI助手进行对话")
 @RestController
@@ -31,10 +33,9 @@ public class ChatController {
 
 
 
-    @Operation(summary = "获取会话列表")
-    @PostMapping("/list")
-    public ApiResponse<AssistantMessage> chatList(@Valid @RequestBody ChatRequest request) throws GraphRunnerException {
-        // TODO 建立会话数据库表，实现会话CRUD
-        return ApiResponse.ok(chatService.chat(request));
+    @Operation(summary = "提问（流式）")
+    @PostMapping(value = "/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> chatStream(@Valid @RequestBody ChatRequest request) throws GraphRunnerException {
+        return chatService.chatAsStream(request);
     }
 }
