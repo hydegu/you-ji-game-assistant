@@ -73,7 +73,7 @@ docker-compose up -d
 CREATE DATABASE you_ji_assistant DEFAULT CHARACTER SET utf8mb4;
 ```
 
-然后执行 `src/main/resources/` 下的 SQL 文件（如有）。
+然后执行 `src/main/resources/` 下的 SQL 文件。
 
 ### 3. 配置应用
 
