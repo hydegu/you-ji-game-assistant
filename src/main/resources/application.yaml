@@ -12,7 +12,7 @@ spring:
     name: spring-ai-helloworld
   ai:
     dashscope:
-      api-key: sk-e6caf87577e0464a93db065c4194a4b5
+      api-key: ${api-key}
       embedding:
         options:
           model: text-embedding-v4
