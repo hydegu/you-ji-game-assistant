@@ -9,6 +9,7 @@ import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 import com.example.assistant.pojo.AnswerValidation;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.assistant.constant.Prompts;
 import com.networknt.schema.ValidationResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,9 +55,7 @@ public class AnswerValidationInterceptor extends ModelInterceptor {
 
         if (!isValid.pass()) {
             // 如果答案质量不足，可以添加提示要求重新生成
-            SystemMessage validationPrompt = new SystemMessage(
-                    "请重新检查你的答案，确保基于提供的上下文信息，并且准确完整。"
-            );
+            SystemMessage validationPrompt = new SystemMessage(Prompts.PROMPT_VALIDATION_RETRY);
 
             ModelRequest retryRequest = ModelRequest.builder(request)
                     .systemMessage(validationPrompt)

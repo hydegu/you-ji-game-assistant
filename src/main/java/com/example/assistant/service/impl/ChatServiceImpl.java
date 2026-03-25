@@ -107,22 +107,7 @@ public class ChatServiceImpl implements ChatService {
                 .description(Prompts.AGENT_MAIN)
                 .enableLogging(true)
                 .saver(mysqlSaver)
-                .instruction(String.format("""
-                        当前用户正在咨询 gameId=%d 的游戏助手。
-                        
-                             【工具说明】
-                             1. database_query - 查询当前游戏基本信息（名称、简介），无需传参
-                             2. document_search - 搜索游戏详细文档（攻略、角色、剧情等）
-                        
-                             【何时调用工具】
-                             仅当用户询问游戏内容时（如角色技能、攻略、剧情、版本信息等）才调用工具。
-                        
-                             【何时直接回答，不得调用工具】
-                             以下情况直接根据对话上下文回答，禁止调用任何工具：
-                             - 询问对话历史（如"我刚才说了什么"、"你上次回答了什么"）
-                             - 日常寒暄（如"你好"、"谢谢"）
-                             - 对已有回答的追问、确认或反馈
-                        """, request.getGameId()))
+                .instruction(buildInstruction(request.getGameId()))
                 .chatOptions(DashScopeChatOptions.builder()
                         .temperature(0.3)
                         .topP(0.7)
@@ -198,22 +183,7 @@ public class ChatServiceImpl implements ChatService {
                 .description(Prompts.AGENT_MAIN)
                 .enableLogging(true)
                 .saver(mysqlSaver)
-                .instruction(String.format("""
-                        当前用户正在咨询 gameId=%d 的游戏助手。
-                        
-                             【工具说明】
-                             1. database_query - 查询当前游戏基本信息（名称、简介），无需传参
-                             2. document_search - 搜索游戏详细文档（攻略、角色、剧情等）
-                        
-                             【何时调用工具】
-                             仅当用户询问游戏内容时（如角色技能、攻略、剧情、版本信息等）才调用工具。
-                        
-                             【何时直接回答，不得调用工具】
-                             以下情况直接根据对话上下文回答，禁止调用任何工具：
-                             - 询问对话历史（如"我刚才说了什么"、"你上次回答了什么"）
-                             - 日常寒暄（如"你好"、"谢谢"）
-                             - 对已有回答的追问、确认或反馈
-                        """, request.getGameId()))
+                .instruction(buildInstruction(request.getGameId()))
                 .chatOptions(DashScopeChatOptions.builder()
                         .temperature(0.3)
                         .topP(0.7)
@@ -272,6 +242,10 @@ public class ChatServiceImpl implements ChatService {
                         // 序列化失败，跳过该事件
                     }
                 });
+    }
+
+    private String buildInstruction(long gameId) {
+        return String.format(Prompts.PROMPT_MAIN, gameId);
     }
 
     // 工厂方法
